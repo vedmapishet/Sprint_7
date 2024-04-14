@@ -5,8 +5,8 @@ import requests
 from constant import Constants
 from data import ResponsBody
 from data import DataTest
-from data import creat_track_order as tr
-from data import login_courier as log
+from helpers import creat_track_order as tr
+from helpers import login_courier as log
 
 
 class TestTakeOrder:
@@ -15,7 +15,6 @@ class TestTakeOrder:
     track = tr(DataTest.data_add_color)
 
     @allure.title('PUT запрос - Заказ успешно принят курьером')
-    @allure.step("Отправка PUT запроса с заголовком, track, id_courier")
     @pytest.mark.parametrize(("id_courier", "status_code", "track", "json"), [
         (
                 pytest.param(291712, 200, track, ResponsBody.respons_body)
@@ -27,7 +26,6 @@ class TestTakeOrder:
         assert response.json() == json
 
     @allure.title('PUT запрос - Запрос вернул ошибку')
-    @allure.step("Отправка PUT запроса с заголовком, и невалидными track, id_courier")
     @pytest.mark.parametrize(("id_courier", "status_code", "json", "track"), [
         (
                 pytest.param('', 400, {"code": 400, "message": "Недостаточно данных для поиска"}, 777)

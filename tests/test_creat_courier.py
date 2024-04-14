@@ -4,16 +4,15 @@ import requests
 
 from data import DataTest
 from constant import Constants
-from data import Courier
+from helpers import register_new_courier as reg_courier
 from data import ResponsBody
 
 
 
 class TestCreateCourier:
-    data = Courier.register_new_courier()
+    data = reg_courier()
 
     @allure.title('POST запрос - Успешное создание учетной записи')
-    @allure.step("Отправка POST запроса с заголовком и данными нового курьера")
     @pytest.mark.parametrize(("data", "status_code", "json"), [
         (
                 pytest.param(data, 201, ResponsBody.respons_body)
@@ -25,7 +24,6 @@ class TestCreateCourier:
         assert response.json() == json
 
     @allure.title('POST запрос - Тестирование заполнения всех полей и создание пользователя с логином, который уже зарегистрирован')
-    @allure.step("Отправка POST запроса с заголовком и данными нового курьера")
     @pytest.mark.parametrize(("data", "status_code", "json"), [
         (
                 pytest.param(DataTest.data_409, 409,

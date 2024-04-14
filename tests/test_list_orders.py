@@ -7,7 +7,6 @@ from constant import Constants
 class TestGetAllOrder:
 
     @allure.title('GET запрос - Успешная выгрузка всех заказов')
-    @allure.step("Отправка GET запроса с заголовком")
     def test_get_all_order(self):
         response = requests.get(Constants.url + Constants.created_orders, headers = Constants.headers)
         assert response.status_code == 200

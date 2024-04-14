@@ -5,3 +5,4 @@ class Constants:
     creat_courier = '/api/v1/courier'
     headers = {"Content-Type": "application/json"}
     track = '/api/v1/orders/track?t='
+    take_order = '/api/v1/orders/accept/'

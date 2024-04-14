@@ -21,7 +21,7 @@ class TestTakeOrder:
         )
     ])
     def test_take_order_correct(self, id_courier, status_code, track,json):
-        response = requests.put(f'{Constants.url}/api/v1/orders/accept/{track}?courierId={id_courier}', headers = Constants.headers)
+        response = requests.put(f'{Constants.url}{Constants.take_order}{track}?courierId={id_courier}', headers = Constants.headers)
         assert response.status_code == status_code
         assert response.json() == json
 
@@ -41,7 +41,7 @@ class TestTakeOrder:
         )
     ])
     def test_take_order_error(self, id_courier, status_code, json, track):
-        response = requests.put(f'{Constants.url}/api/v1/orders/accept/{track}?courierId={id_courier}',
+        response = requests.put(f'{Constants.url}{Constants.take_order}{track}?courierId={id_courier}',
                                 headers=Constants.headers)
         assert response.status_code == status_code
         assert response.json() == json

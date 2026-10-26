@@ -90,7 +90,7 @@ def order_with_id(created_order_track):
 def courier_and_order():
     """
     Регистрирует курьера, создаёт уникальный заказ и возвращает
-    (courier_id, track). После теста курьер удаляется.
+    (courier_id, order_id). После теста курьер удаляется.
     """
     from faker import Faker
     fake = Faker()
@@ -117,8 +117,10 @@ def courier_and_order():
         "color": ["BLACK"]
     }
     track = create_order(order_data)
+    # API /api/v1/orders/accept/{id} ожидает order id, а не track
+    order_id = get_order_id_by_track(track)
 
-    yield courier_id, track
+    yield courier_id, order_id
 
     # Очистка
     try:

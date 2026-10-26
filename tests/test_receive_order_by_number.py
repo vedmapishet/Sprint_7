@@ -1,6 +1,7 @@
 """Тесты на получение заказа по track-номеру."""
 
 import allure
+import pytest
 
 from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
 from helpers import _get_session
@@ -8,6 +9,8 @@ from helpers import _get_session
 
 class TestReceiveOrder:
 
+    @pytest.mark.smoke
+    @pytest.mark.regression
     @allure.title("GET /api/v1/orders/track — Успешное получение заказа по номеру")
     def test_receive_order_success(self, created_order_track):
         url = f"{BASE_URL}{ENDPOINTS['track_order']}"

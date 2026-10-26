@@ -1,6 +1,7 @@
 """Тесты на создание заказов."""
 
 import allure
+import pytest
 
 from data import OrderData, ExpectedResponses
 from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
@@ -9,6 +10,8 @@ from helpers import _get_session
 
 class TestCreateOrder:
 
+    @pytest.mark.smoke
+    @pytest.mark.regression
     @allure.title("POST /api/v1/orders — Создание заказа с одним цветом")
     def test_create_order_single_color(self):
         url = f"{BASE_URL}{ENDPOINTS['orders']}"
@@ -22,6 +25,7 @@ class TestCreateOrder:
         finally:
             session.close()
 
+    @pytest.mark.smoke
     @allure.title("POST /api/v1/orders — Создание заказа с несколькими цветами")
     def test_create_order_multi_color(self):
         url = f"{BASE_URL}{ENDPOINTS['orders']}"

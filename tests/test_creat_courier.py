@@ -1,6 +1,7 @@
 """Тесты на создание курьера."""
 
 import allure
+import pytest
 
 from data import TestData, ExpectedResponses
 from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
@@ -9,6 +10,8 @@ from helpers import _get_session, register_new_courier
 
 class TestCreateCourier:
 
+    @pytest.mark.smoke
+    @pytest.mark.regression
     @allure.title("POST /api/v1/courier — Успешное создание учетной записи")
     def test_create_courier_success(self):
         """Создаём курьера с уникальными данными из register_new_courier()."""

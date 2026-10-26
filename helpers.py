@@ -1,69 +1,157 @@
+"""Утилиты для работы с API и генерации тестовых данных."""
+
 import allure
-from faker import Faker
 import requests
-from constant import Constants
+from faker import Faker
 
-@allure.step("Получение id курьера")
-def login_courier():
+from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
+from data import OrderData, TestData
+
+
+def _get_session() -> requests.Session:
+    """Создаёт новую сессию с правильными заголовками."""
+    session = requests.Session()
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@allure.step("Регистрация курьера и получение учётных данных")
+def register_new_courier() -> dict:
+    """Генерирует уникальные учётные данные для нового курьера."""
     fake = Faker()
-    login = fake.user_name()
-    password = fake.password()
-    firstName = fake.name()
-    log_data = {}
-    payload = {
-        "login": login,
-        "password": password,
-        "firstName": firstName
+    return {
+        "login": fake.user_name(),
+        "password": fake.password(),
+        "name": fake.name()
     }
 
-    response = requests.post(Constants.url + Constants.creat_courier, data=payload)
 
-    if response.status_code == 201:  # если регистрация прошла успешно (код ответа 201)
-        log_data = {"login": login, "password": password}
+@allure.step("Регистрация курьера через API")
+def create_courier(payload: dict) -> requests.Response:
+    """Регистрирует курьера на API и возвращает ответ."""
+    url = f"{BASE_URL}{ENDPOINTS['create_courier']}"
+    session = _get_session()
+    try:
+        response = session.post(url, json=payload, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response
+    finally:
+        session.close()
 
 
-    response = requests.post(Constants.url + Constants.login_courier, headers=Constants.headers,
-                             json=log_data)
-    id_courier = response.json()['id']
+@allure.step("Вход курьера в систему, возврат id и учётных данных")
+def login_courier(login: str, password: str) -> int:
+    """
+    Выполняет вход курьера по login/password и возвращает его id.
 
-    return id_courier
+    Raises:
+        RuntimeError: если вход не выполнен успешно.
+    """
+    url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+    session = _get_session()
+    try:
+        auth_payload = {"login": login, "password": password}
+        response = session.post(url, json=auth_payload, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
 
-@allure.step("Получение id заказа")
-def creat_track_order(data):
-    response = requests.post(f'{Constants.url}{Constants.created_orders}', headers=Constants.headers, json=data)
-    tr = response.json()['track']
-    response = requests.get(f'{Constants.url}{Constants.track}{tr}', headers=Constants.headers)
-    id = response.json()['order']['id']
-    return id
+        data = response.json()
+        courier_id = data.get("id")
+        if courier_id is None:
+            raise RuntimeError(
+                f"Ожидался 'id' в ответе входа, получен: {data}"
+            )
+        return courier_id
+    finally:
+        session.close()
 
-@allure.step("Регистрация курьера и получение его логина и пароля")
-def reg_courier():
-    fake = Faker()
-    login = fake.user_name()
-    password = fake.password()
-    firstName = fake.name()
-    log_courier = {}
-    payload = {
-        "login": login,
-        "password": password,
-        "firstName": firstName
-    }
 
-    response = requests.post(f'{Constants.url}{Constants.creat_courier}', data=payload)
+@allure.step("Создание заказа, возврат track-номера")
+def create_order(data: dict | None = None) -> str:
+    """
+    Создаёт заказ через API и возвращает track-номер.
 
-    if response.status_code == 201:  # если регистрация прошла успешно (код ответа 201)
-        log_courier = {"login": login, "password": password}
-    return log_courier
+    Args:
+        data: данные заказа; по умолчанию используются данные из OrderData.single_order.
 
-@allure.step("Регистрация курьера")
-def register_new_courier():
-    fake = Faker()
-    login = fake.user_name()
-    password = fake.password()
-    firstName = fake.name()
-    reg_data = {
-        "login": login,
-        "password": password,
-        "name": firstName
-    }
-    return reg_data
+    Raises:
+        RuntimeError: если заказ не создан.
+    """
+    if data is None:
+        data = OrderData.single_order
+
+    url = f"{BASE_URL}{ENDPOINTS['orders']}"
+    session = _get_session()
+    try:
+        response = session.post(url, json=data, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+
+        track = response.json().get("track")
+        if track is None:
+            raise RuntimeError(
+                f"Ожидался 'track' в ответе создания заказа, получен: {response.json()}"
+            )
+        return track
+    finally:
+        session.close()
+
+
+@allure.step("Получение order id по track-номеру")
+def get_order_id_by_track(track: str) -> int:
+    """
+    Запрашивает статус заказа по track-номеру и возвращает order id.
+
+    Raises:
+        RuntimeError: если ответ не содержит order.id.
+    """
+    url = f"{BASE_URL}{ENDPOINTS['track_order']}"
+    session = _get_session()
+    try:
+        response = session.get(url, params={"t": track}, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+
+        order_data = response.json().get("order", {})
+        order_id = order_data.get("id")
+        if order_id is None:
+            raise RuntimeError(
+                f"Ожидался 'order.id' в ответе трекинга, получен: {response.json()}"
+            )
+        return order_id
+    finally:
+        session.close()
+
+
+@allure.step("Принятие заказа курьером")
+def accept_order(track: str, courier_id: int) -> requests.Response:
+    """
+    Принимает заказ курьером по track-номеру.
+
+    Raises:
+        RuntimeError: если ответ не содержит ожидаемого поля.
+    """
+    url = f"{BASE_URL}{ENDPOINTS['take_order']}{track}"
+    params = {"courierId": courier_id}
+    session = _get_session()
+    try:
+        response = session.put(url, params=params, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response
+    finally:
+        session.close()
+
+
+@allure.step("Удаление курьера по id")
+def delete_courier(courier_id: int) -> requests.Response:
+    """
+    Удаляет курьера по id.
+
+    Raises:
+        RuntimeError: если удаление не выполнено.
+    """
+    url = f"{BASE_URL}{ENDPOINTS['create_courier']}/{courier_id}"
+    session = _get_session()
+    try:
+        response = session.delete(url, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response
+    finally:
+        session.close()

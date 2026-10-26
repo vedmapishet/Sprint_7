@@ -1,40 +1,45 @@
+"""Тесты на создание курьера."""
+
 import allure
-import pytest
-import requests
 
-from data import DataTest
-from constant import Constants
-from helpers import register_new_courier as reg_courier
-from data import ResponsBody
-
+from data import TestData, ExpectedResponses
+from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
+from helpers import _get_session, register_new_courier
 
 
 class TestCreateCourier:
-    data = reg_courier()
 
-    @allure.title('POST запрос - Успешное создание учетной записи')
-    @pytest.mark.parametrize(("data", "status_code", "json"), [
-        (
-                pytest.param(data, 201, ResponsBody.respons_body)
-        )
-    ])
-    def test_create_courier(self, data, status_code, json):
-        response = requests.post(Constants.url + Constants.creat_courier, headers = Constants.headers, json = data)
-        assert response.status_code == status_code
-        assert response.json() == json
+    @allure.title("POST /api/v1/courier — Успешное создание учетной записи")
+    def test_create_courier_success(self):
+        """Создаём курьера с уникальными данными из register_new_courier()."""
+        url = f"{BASE_URL}{ENDPOINTS['create_courier']}"
+        creds = register_new_courier()
+        session = _get_session()
+        try:
+            response = session.post(url, json=creds, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 201
+            assert response.json() == ExpectedResponses.success_created
+        finally:
+            session.close()
 
-    @allure.title('POST запрос - Тестирование заполнения всех полей и создание пользователя с логином, который уже зарегистрирован')
-    @pytest.mark.parametrize(("data", "status_code", "json"), [
-        (
-                pytest.param(DataTest.data_409, 409,
-                             ResponsBody.respons_body_409)
-        ),
-        (
-                pytest.param(DataTest.data_400, 400,
-                             ResponsBody.respons_body_400)
-        )
-    ])
-    def test_create_courier_fail(self, data, status_code, json):
-        response = requests.post(Constants.url + Constants.creat_courier, headers = Constants.headers, json = data)
-        assert response.status_code == status_code
-        assert response.json() == json
+    @allure.title("POST /api/v1/courier — Дублирование логина (409)")
+    def test_create_courier_duplicate_login(self):
+        url = f"{BASE_URL}{ENDPOINTS['create_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(url, json=TestData.duplicate_login_data, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 409
+            assert response.json() == ExpectedResponses.error_409_duplicate_login
+        finally:
+            session.close()
+
+    @allure.title("POST /api/v1/courier — Пустые обязательные поля (400)")
+    def test_create_courier_empty_fields(self):
+        url = f"{BASE_URL}{ENDPOINTS['create_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(url, json=TestData.empty_fields_data, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 400
+            assert response.json() == ExpectedResponses.error_400_insufficient_data
+        finally:
+            session.close()

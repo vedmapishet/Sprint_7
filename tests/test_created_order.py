@@ -1,30 +1,49 @@
+"""Тесты на создание заказов."""
+
 import allure
-import pytest
-import requests
 
-from constant import Constants
-from data import DataTest
-
+from data import OrderData, ExpectedResponses
+from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
+from helpers import _get_session
 
 
 class TestCreateOrder:
 
-    @allure.title('POST запрос - Создание заказа')
-    @allure.description(
-        "Тестируем заполнение параметра color, а также"
-        "наличие слова track в теле ответа")
-    @pytest.mark.parametrize(("data", "status_code"), [
-        (
-                pytest.param(DataTest.data_for_order, 201)
-        ),
-        (
-                pytest.param(DataTest.data_add_color, 201)
-        ),
-        (
-                pytest.param(DataTest.data_not_color, 201)
-        )
-    ])
-    def test_create_order(self, data, status_code):
-        response = requests.post(Constants.url + Constants.created_orders, headers = Constants.headers, json = data)
-        assert response.status_code == status_code
-        assert 'track' in response.json()
+    @allure.title("POST /api/v1/orders — Создание заказа с одним цветом")
+    def test_create_order_single_color(self):
+        url = f"{BASE_URL}{ENDPOINTS['orders']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=OrderData.single_order, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 201
+            assert "track" in response.json()
+        finally:
+            session.close()
+
+    @allure.title("POST /api/v1/orders — Создание заказа с несколькими цветами")
+    def test_create_order_multi_color(self):
+        url = f"{BASE_URL}{ENDPOINTS['orders']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=OrderData.multi_color_order, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 201
+            assert "track" in response.json()
+        finally:
+            session.close()
+
+    @allure.title("POST /api/v1/orders — Создание заказа без указания цвета")
+    def test_create_order_no_color(self):
+        url = f"{BASE_URL}{ENDPOINTS['orders']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=OrderData.no_color_order, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 201
+            assert "track" in response.json()
+        finally:
+            session.close()

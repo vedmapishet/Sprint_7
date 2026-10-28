@@ -1,47 +1,78 @@
-import allure
-import pytest
-import requests
+"""Тесты на вход курьера в систему."""
 
-from constant import Constants
-from helpers import reg_courier
-from data import DataTest
+import allure
+
+from data import TestData, ExpectedResponses
+from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
+from helpers import _get_session
 
 
 class TestLoginCourier:
-    data_login = reg_courier()
 
-    @allure.title('POST запрос - Логин курьера в системе. Положительный кейс')
-    @pytest.mark.parametrize(("data", "status_code"), [
-        (
-                pytest.param(data_login, 200)
-        )
-    ])
-    def test_login_courier_correct(self, data, status_code):
-        response = requests.post(Constants.url + Constants.login_courier, headers = Constants.headers, json = data)
-        assert response.status_code == status_code
-        assert 'id' in response.json()
+    @allure.title("POST /api/v1/courier/login — Успешный вход")
+    def test_login_success(self, courier_registered_and_logged):
+        """Курьер уже зарегистрирован fixture'ом, входим по login/password."""
+        url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+        session = _get_session()
+        try:
+            auth_payload = {
+                "login": courier_registered_and_logged["login"],
+                "password": courier_registered_and_logged["password"],
+            }
+            response = session.post(url, json=auth_payload, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 200
+            assert "id" in response.json()
+        finally:
+            session.close()
 
+    @allure.title("POST /api/v1/courier/login — Отсутствует login (400)")
+    def test_login_missing_login_field(self):
+        url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=TestData.missing_login_field, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 400
+            assert response.json() == ExpectedResponses.error_400_login_insufficient_data
+        finally:
+            session.close()
 
-    @allure.title('POST запрос - Логин курьера в системе. Негативная проверка')
-    @pytest.mark.parametrize(("data", "status_code", "json"), [
-        (
-                pytest.param(DataTest.data_not_login, 400,
-                                 {'code': 400, 'message': 'Недостаточно данных для входа'})
-        ),
-        (
-                pytest.param(DataTest.data_fail_login_and_password, 404,
-                                 {"code": 404, "message": "Учетная запись не найдена"})
-        ),
-        (
-                pytest.param(DataTest.data_not_correct, 400,
-                                 {"code": 400, "message": "Недостаточно данных для входа"})
-        ),
-        (
-                pytest.param(DataTest.data_not_log, 400,
-                                 {"code": 400, "message": "Недостаточно данных для входа"})
-        ),
-    ])
-    def test_login_courier_fail(self, data, status_code, json):
-        response = requests.post(Constants.url + Constants.login_courier, headers = Constants.headers, json = data)
-        assert response.status_code == status_code
-        assert response.json() == json
+    @allure.title("POST /api/v1/courier/login — Вход по пробелам (404)")
+    def test_login_whitespace_credentials(self):
+        url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=TestData.whitespace_credentials, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 404
+            assert response.json() == ExpectedResponses.error_404_account_not_found
+        finally:
+            session.close()
+
+    @allure.title("POST /api/v1/courier/login — Пустые учётные данные (400)")
+    def test_login_empty_credentials(self):
+        url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=TestData.empty_credentials, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 400
+            assert response.json() == ExpectedResponses.error_400_login_insufficient_data
+        finally:
+            session.close()
+
+    @allure.title("POST /api/v1/courier/login — Отсутствует поле login (400)")
+    def test_login_missing_login_key(self):
+        url = f"{BASE_URL}{ENDPOINTS['login_courier']}"
+        session = _get_session()
+        try:
+            response = session.post(
+                url, json=TestData.missing_login_for_auth, timeout=REQUEST_TIMEOUT
+            )
+            assert response.status_code == 400
+            assert response.json() == ExpectedResponses.error_400_login_insufficient_data
+        finally:
+            session.close()

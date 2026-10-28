@@ -1,51 +1,35 @@
+"""Тесты на удаление курьера."""
+
 import allure
-import pytest
-import requests
 
-from helpers import login_courier as log
-from constant import Constants
-from data import ResponsBody
+from data import ExpectedResponses
+from constant import BASE_URL, ENDPOINTS, REQUEST_TIMEOUT
+from helpers import _get_session
 
-class TestDelCourier:
-    id_courier = log()
-    @allure.title('DELETE запрос - Успешное удаление учетной записи')
-    @pytest.mark.parametrize(("id_courier", "status_code", "json"), [
-        (
-                pytest.param(id_courier, 200, ResponsBody.respons_body)
-        )
-    ])
-    def test_delete_courier(self, id_courier, status_code, json):
-        id = f"{id_courier}"
-        response_delete = requests.delete(f"{Constants.url}{Constants.creat_courier}/{id_courier}", data = {'id': {id}})
 
-        # проверим, что удаление выполнено успешно
-        assert response_delete.status_code == 200
-        assert response_delete.json() == json
+class TestDeleteCourier:
 
-    @allure.title('DELETE запрос - запрос с несуществующим id')
-    @pytest.mark.parametrize(("id_courier", "status_code", "json"), [
-        (
-                pytest.param(id_courier, 404, ResponsBody.respons_body_404)
-        )
-    ])
-    def test_delete_courier_fail(self, id_courier, status_code, json):
-        id = f"{id_courier}"
-        response_delete = requests.delete(f"{Constants.url}{Constants.creat_courier}/{id_courier}", data={'id': {id}})
+    @allure.title("DELETE /api/v1/courier/{id} — Успешное удаление")
+    def test_delete_courier_success(self, registered_courier_id):
+        courier_id = registered_courier_id
+        url = f"{BASE_URL}{ENDPOINTS['create_courier']}/{courier_id}"
+        session = _get_session()
+        try:
+            response = session.delete(url, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 200
+            assert response.json() == ExpectedResponses.success_created
+        finally:
+            session.close()
 
-        # проверим, что удаление выполнено успешно
-        assert response_delete.status_code == status_code
-        assert response_delete.json() == json
-
-    @allure.title('DELETE запрос - запрос без id')
-    @pytest.mark.parametrize(("id_courier", "status_code", "json"), [
-    (
-        pytest.param(id_courier, 500, ResponsBody.respons_body_500)
-    )
-    ])
-
-    def test_delete_courier_fail_2(self, id_courier, status_code, json):
-        id = f"{id_courier}"
-        response_delete = requests.delete(f"{Constants.url}{Constants.creat_courier}/:id", data={'id': {id}})
-
-        assert response_delete.status_code == status_code
-        assert response_delete.json() == json
+    @allure.title("DELETE /api/v1/courier/{id} — Удаление несуществующего курьера (404)")
+    def test_delete_nonexistent_courier(self):
+        """Попытка удалить курьера с заведомо несуществующим ID."""
+        fake_id = 999999
+        url = f"{BASE_URL}{ENDPOINTS['create_courier']}/{fake_id}"
+        session = _get_session()
+        try:
+            response = session.delete(url, timeout=REQUEST_TIMEOUT)
+            assert response.status_code == 404
+            assert response.json() == ExpectedResponses.error_404_courier_not_found
+        finally:
+            session.close()

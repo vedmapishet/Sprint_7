@@ -1,81 +1,137 @@
-class DataTest:
+"""Тестовые данные для автотестов."""
 
-    data_409 = {
-        "login": "ttest",
+
+class TestData:
+    """Тестовые данные для создания курьера."""
+
+    # Данные для тестирования дублирования логина (ожидаемый статус 409)
+    duplicate_login_data = {
+        "login": "test_duplicate",
         "password": "1234",
         "firstName": "test"
     }
 
-    data_400 = {
+    # Данные с пустыми обязательными полями (ожидаемый статус 400)
+    empty_fields_data = {
         "login": "",
         "password": "",
         "firstName": ""
     }
 
-    data_not_login = {
+    # Данные для тестирования входа: отсутствует login
+    missing_login_field = {
         "login": "",
         "password": "1234"
     }
 
-    data_fail_login_and_password = {
+    # Данные для тестирования входа: пробелы вместо login и password
+    whitespace_credentials = {
         "login": " ",
         "password": " "
     }
 
-    data_not_correct = {
+    # Данные для тестирования входа: полностью пустые поля
+    empty_credentials = {
         "login": "",
         "password": ""
     }
 
-    data_not_log = {
+    # Данные для тестирования входа: отсутствует login
+    missing_login_for_auth = {
         "password": "1234"
     }
 
-    data_for_order = {
+
+class OrderData:
+    """Тестовые данные для создания заказов."""
+
+    single_order = {
         "firstName": "One",
         "lastName": "Two",
-        "address": "Moskow, Arbat 23",
+        "address": "Moscow, Arbat 23",
         "metroStation": 4,
         "phone": "+7 800 555 55 50",
         "rentTime": 6,
         "deliveryDate": "2024-05-05",
         "comment": "One color",
-        "color": [
-            "BLACK"
-        ]
+        "color": ["BLACK"]
     }
 
-    data_add_color = {
+    multi_color_order = {
         "firstName": "Two",
         "lastName": "One",
-        "address": "Moskow, Arbat 23",
+        "address": "Moscow, Arbat 23",
         "metroStation": 4,
         "phone": "+7 800 555 55 50",
         "rentTime": 5,
         "deliveryDate": "2024-05-05",
         "comment": "Two color",
-        "color": [
-            "BLACK",
-            "GREY"
-        ]
+        "color": ["BLACK", "GREY"]
     }
 
-    data_not_color = {
+    no_color_order = {
         "firstName": "Four",
         "lastName": "Five",
-        "address": "Moskow, Arbat 24",
+        "address": "Moscow, Arbat 24",
         "metroStation": 4,
         "phone": "+7 800 555 55 50",
         "rentTime": 5,
         "deliveryDate": "2024-05-05",
-        "comment": "Not solor"
+        "comment": "No color"
     }
-    data_courier = 3333
 
 
-class ResponsBody:
-    respons_body = {"ok": True}
-    respons_body_409 = {"code": 409, "message": "Этот логин уже используется. Попробуйте другой."}
-    respons_body_400 = {"code": 400, "message": "Недостаточно данных для создания учетной записи"}
-    respons_body_404 = {"code": 404, "message": "Курьера с таким id нет."}
-    respons_body_500 = {"code":500,"message":"invalid input syntax for type integer: \":id\""}
+class ExpectedResponses:
+    """Ожидаемые тела ответов от API."""
+
+    success_created = {"ok": True}
+
+    error_409_duplicate_login = {
+        "code": 409,
+        "message": "Этот логин уже используется. Попробуйте другой."
+    }
+
+    error_400_insufficient_data = {
+        "code": 400,
+        "message": "Недостаточно данных для создания учетной записи"
+    }
+
+    error_404_courier_not_found = {
+        "code": 404,
+        "message": "Курьера с таким id нет."
+    }
+
+    error_500_invalid_input = {
+        "code": 500,
+        "message": "invalid input syntax for type integer: \":id\""
+    }
+
+    error_400_login_insufficient_data = {
+        "code": 400,
+        "message": "Недостаточно данных для входа"
+    }
+
+    error_404_account_not_found = {
+        "code": 404,
+        "message": "Учетная запись не найдена"
+    }
+
+    error_404_courier_does_not_exist = {
+        "code": 404,
+        "message": "Курьера с таким id не существует"
+    }
+
+    error_404_order_not_found = {
+        "code": 404,
+        "message": "Заказа с таким id не существует"
+    }
+
+    error_409_order_already_in_progress = {
+        "code": 409,
+        "message": "Этот заказ уже в работе"
+    }
+
+    error_400_insufficient_search_data = {
+        "code": 400,
+        "message": "Недостаточно данных для поиска"
+    }
